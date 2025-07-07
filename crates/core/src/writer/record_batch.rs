@@ -102,9 +102,18 @@ impl RecordBatchWriter {
     /// Creates a [`RecordBatchWriter`] to write data to provided Delta Table
     pub fn for_table(table: &DeltaTable) -> Result<Self, DeltaTableError> {
         // Initialize an arrow schema ref from the delta table schema
-        let metadata = table.metadata()?;
-        let arrow_schema: ArrowSchema = (&metadata.schema()?).try_into_arrow()?;
+        let arrow_schema: ArrowSchema = (&table.metadata()?.schema()?).try_into_arrow()?;
         let arrow_schema_ref = Arc::new(arrow_schema);
+        Self::for_table_with_schema(table, arrow_schema_ref)
+    }
+
+    /// Creates a [`RecordBatchWriter`] to write data to provided Delta Table, using a different schema
+    pub fn for_table_with_schema(
+        table: &DeltaTable,
+        arrow_schema_ref: ArrowSchemaRef,
+    ) -> Result<Self, DeltaTableError> {
+        // Initialize an arrow schema ref from the delta table schema
+        let metadata = table.metadata()?;
         let partition_columns = metadata.partition_columns.clone();
 
         // Initialize writer properties for the underlying arrow writer
@@ -112,8 +121,7 @@ impl RecordBatchWriter {
             // NOTE: Consider extracting config for writer properties and setting more than just compression
             .set_compression(Compression::SNAPPY)
             .build();
-        let configuration: HashMap<String, Option<String>> =
-            table.metadata()?.configuration.clone();
+        let configuration: HashMap<String, Option<String>> = metadata.configuration.clone();
 
         Ok(Self {
             storage: table.object_store(),

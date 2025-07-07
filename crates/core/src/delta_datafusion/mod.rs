@@ -1505,6 +1505,7 @@ impl DeltaDataChecker {
             } else {
                 check.get_name()
             };
+
             let sql = format!(
                 "SELECT {} FROM `{table_name}` WHERE NOT ({}) LIMIT 1",
                 field_to_select,

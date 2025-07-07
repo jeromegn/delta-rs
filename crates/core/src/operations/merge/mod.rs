@@ -782,16 +782,13 @@ async fn execute(
     };
 
     let mut generated_col_exp = None;
-    let mut missing_generated_col = None;
 
     if able_to_gc(&snapshot)? {
         let generated_col_expressions = snapshot.schema().get_generated_columns()?;
-        let (source_with_gc, missing_generated_columns) =
-            add_missing_generated_columns(source, &generated_col_expressions)?;
+        let source_with_gc = add_missing_generated_columns(source, &generated_col_expressions)?;
 
         source = source_with_gc;
         generated_col_exp = Some(generated_col_expressions);
-        missing_generated_col = Some(missing_generated_columns);
     }
     // This is only done to provide the source columns with a correct table reference. Just renaming the columns does not work
     let source = LogicalPlanBuilder::scan(
@@ -1353,14 +1350,7 @@ async fn execute(
     };
 
     if let Some(generated_col_expressions) = generated_col_exp {
-        if let Some(missing_generated_columns) = missing_generated_col {
-            projected = add_generated_columns(
-                projected,
-                &generated_col_expressions,
-                &missing_generated_columns,
-                &state,
-            )?;
-        }
+        projected = add_generated_columns(projected, &generated_col_expressions, &state)?;
     }
 
     let merge_final = &projected.into_unoptimized_plan();

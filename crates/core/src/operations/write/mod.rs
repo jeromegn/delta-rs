@@ -448,16 +448,14 @@ impl std::future::IntoFuture for WriteBuilder {
             };
             let mut schema_drift = false;
             let mut generated_col_exp = None;
-            let mut missing_gen_col = None;
             let mut source = DataFrame::new(state.clone(), this.input.unwrap().as_ref().clone());
             if let Some(snapshot) = &this.snapshot {
                 if able_to_gc(snapshot)? {
                     let generated_col_expressions = snapshot.schema().get_generated_columns()?;
                     // Add missing generated columns to source_df
-                    let (source_with_gc, missing_generated_columns) =
+                    let source_with_gc =
                         add_missing_generated_columns(source, &generated_col_expressions)?;
                     source = source_with_gc;
-                    missing_gen_col = Some(missing_generated_columns);
                     generated_col_exp = Some(generated_col_expressions);
                 }
             }
@@ -532,14 +530,7 @@ impl std::future::IntoFuture for WriteBuilder {
             }
 
             if let Some(generated_columns_exp) = generated_col_exp {
-                if let Some(missing_generated_col) = missing_gen_col {
-                    source = add_generated_columns(
-                        source,
-                        &generated_columns_exp,
-                        &missing_generated_col,
-                        &state,
-                    )?;
-                }
+                source = add_generated_columns(source, &generated_columns_exp, &state)?;
             }
 
             let source = LogicalPlan::Extension(Extension {
